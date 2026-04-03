@@ -1,0 +1,310 @@
+PROMPT 1 - Apenas analise e guarde o seguinte código: -- Criação da tabela Professor CREATE TABLE professor ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, data_nascimento DATE -- Corrigido: de VARCHAR para DATE ); -- Criação da tabela Disciplina CREATE TABLE disciplina ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, professor_id INT REFERENCES professor(id) -- Corrigido: referência agora aponta para o ID ); -- Criação da tabela Aluno CREATE TABLE aluno ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL -- Removido: 'nota' (duplicidade e tipo incorreto, já existe em matricula) ); -- Criação da tabela Matricula CREATE TABLE matricula ( id SERIAL PRIMARY KEY, aluno_id INT REFERENCES aluno(id), -- Corrigido: referência agora aponta para o ID disciplina_id INT REFERENCES disciplina(id), semestre VARCHAR(20), nota NUMERIC(4,2), UNIQUE (aluno_id, disciplina_id, semestre) ); -- Criação da tabela de Log CREATE TABLE avaliacao_log ( id SERIAL PRIMARY KEY, aluno_nome VARCHAR(100), -- Mantido conforme original, mas preenchido via lógica de aplicação/trigger data_acesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); Depois de analisar espere meu segundo comando
+
+RESPOSTA 1 - Código analisado e armazenado. Pode mandar o próximo comando 👍
+
+PROMPT 2 - Agora você precisa implementar as consultas que serão utilizadas pela organização do evento para gerar relatórios: Lista de alunos reprovados (consulte critérios de avaliação do Centro Universitário Afya) na disciplina de "Sistemas de Banco de Dados II". Exemplo: nome do aluno, nome da disciplina, idade, valor da nota e adicione uma mensagem motivadora para os acadêmicos caso a nota deles for maior que 5,00 e forem nascidos no mês de abril.
+
+RESPOSTA 2 - Beleza, vamos montar essa consulta com base no seu banco 👍
+📌 Critérios considerados:
+•	Reprovado (AFYA) → normalmente nota < 7,0 
+•	Filtrar disciplina: "Sistemas de Banco de Dados II" 
+•	Calcular idade a partir da data de nascimento 
+•	Mensagem motivadora: 
+o	Nota > 5,00 
+o	Nascido em abril (mês = 4) 
+________________________________________
+✅ Consulta SQL:
+SELECT 
+    a.nome AS aluno_nome,
+    d.nome AS disciplina_nome,
+    DATE_PART('year', AGE(p.data_nascimento)) AS idade,
+    m.nota,
+    CASE 
+        WHEN m.nota > 5.00 
+             AND DATE_PART('month', p.data_nascimento) = 4
+        THEN 'Continue se esforçando, você está quase lá!'
+        ELSE NULL
+    END AS mensagem_motivadora
+FROM matricula m
+JOIN aluno a ON m.aluno_id = a.id
+JOIN disciplina d ON m.disciplina_id = d.id
+JOIN professor p ON d.professor_id = p.id
+WHERE d.nome = 'Sistemas de Banco de Dados II'
+  AND m.nota < 7.0;
+________________________________________
+⚠️ Observação importante
+No seu modelo atual, o aluno não tem data de nascimento, apenas o professor tem.
+Então, para essa consulta funcionar corretamente como você pediu (idade do aluno + mês de nascimento), o ideal seria adicionar:
+ALTER TABLE aluno ADD COLUMN data_nascimento DATE;
+E então trocar no SELECT:
+AGE(a.data_nascimento)
+DATE_PART('month', a.data_nascimento)
+________________________________________
+Se quiser, no próximo passo eu posso:
+•	corrigir totalmente o banco pra ficar mais realista 
+•	ou montar mais relatórios nesse mesmo padrão 👀 
+
+PROMPT 3 - O seu script possui dados inexistentes, como data de nascimento e etc...
+
+RESPOSTA 3 - Você está certo — do jeito que o banco foi definido, não existe data de nascimento do aluno, então não dá pra calcular idade nem verificar mês de nascimento sem inventar dados (o que não pode).
+👉 Além disso, no meu script anterior eu usei professor.data_nascimento, o que está conceitualmente errado, porque o relatório é sobre alunos, não professores.
+________________________________________
+✅ Ajustando a solução corretamente (sem inventar dados)
+Como o banco realmente está, só podemos usar:
+•	aluno.nome 
+•	disciplina.nome 
+•	matricula.nota 
+❌ Não dá pra:
+•	calcular idade 
+•	verificar mês de nascimento 
+•	aplicar a regra do mês de abril corretamente 
+________________________________________
+📌 Consulta válida com os dados existentes
+SELECT 
+    a.nome AS aluno_nome,
+    d.nome AS disciplina_nome,
+    m.nota,
+    CASE 
+        WHEN m.nota > 5.00 
+        THEN 'Continue se esforçando, você está quase lá!'
+        ELSE NULL
+    END AS mensagem_motivadora
+FROM matricula m
+JOIN aluno a ON m.aluno_id = a.id
+JOIN disciplina d ON m.disciplina_id = d.id
+WHERE d.nome = 'Sistemas de Banco de Dados II'
+  AND m.nota < 7.0;
+________________________________________
+⚠️ Limitação do seu modelo
+O requisito pede:
+•	idade do aluno 
+•	mês de nascimento 
+Mas isso não existe na tabela aluno, então:
+👉 Ou o requisito está inconsistente com o banco
+👉 Ou o banco está incompleto
+________________________________________
+💡 Como seria o correto (conceitualmente)
+Se o exercício exigir mesmo idade e mês de nascimento, então o modelo deveria ter:
+ALTER TABLE aluno ADD COLUMN data_nascimento DATE;
+________________________________________
+✔️ Resumo direto
+•	Sua observação está correta 
+•	Não dá pra usar dados que não existem 
+•	A consulta foi ajustada para respeitar o banco atual 
+•	O requisito (idade + abril) não pode ser atendido 100% com esse esquema 
+________________________________________
+Se quiser, posso:
+•	adaptar o banco inteiro pra bater com os requisitos do trabalho 
+•	ou te ajudar a justificar isso na resposta (isso vale ponto em prova 👀) 
+
+PROMPT 4 - Próxima consulta: Quantidade de alunos por sexo da disciplina de Programação Orientada a Objetos. Exemplo: nome da disciplina, descrição do sexo, nome do curso, categoria de ensino, quantidade e data da consulta.
+
+RESPOSTA 4 - Boa — aqui acontece o mesmo problema estrutural do anterior: o seu banco não possui os seguintes dados:
+•	❌ sexo do aluno 
+•	❌ curso 
+•	❌ categoria de ensino 
+Então, não dá pra montar exatamente o relatório como foi pedido sem inventar tabelas ou colunas.
+________________________________________
+✅ O que dá pra fazer com o banco atual
+Você consegue apenas:
+•	nome da disciplina 
+•	quantidade de alunos matriculados 
+•	data da consulta 
+________________________________________
+📌 Consulta possível (adaptada ao seu modelo)
+SELECT 
+    d.nome AS disciplina_nome,
+    COUNT(m.aluno_id) AS quantidade_alunos,
+    CURRENT_TIMESTAMP AS data_consulta
+FROM matricula m
+JOIN disciplina d ON m.disciplina_id = d.id
+WHERE d.nome = 'Programação Orientada a Objetos'
+GROUP BY d.nome;
+________________________________________
+⚠️ Por que não dá pra fazer o restante?
+Para atender o enunciado original, você precisaria de algo assim no banco:
+Na tabela aluno
+sexo CHAR(1) -- ou VARCHAR
+Tabela curso
+curso (
+    id,
+    nome,
+    categoria_ensino
+)
+Relação aluno → curso
+aluno.curso_id
+________________________________________
+💡 Como seria a consulta COMPLETA (se o banco estivesse correto)
+Só pra você entender o que o professor espera conceitualmente:
+SELECT 
+    d.nome AS disciplina_nome,
+    a.sexo,
+    c.nome AS curso_nome,
+    c.categoria_ensino,
+    COUNT(*) AS quantidade,
+    CURRENT_TIMESTAMP AS data_consulta
+FROM matricula m
+JOIN aluno a ON m.aluno_id = a.id
+JOIN disciplina d ON m.disciplina_id = d.id
+JOIN curso c ON a.curso_id = c.id
+WHERE d.nome = 'Programação Orientada a Objetos'
+GROUP BY d.nome, a.sexo, c.nome, c.categoria_ensino;
+________________________________________
+✔️ Resumo direto
+•	Seu banco atual não suporta esse relatório completo 
+•	A versão adaptada funciona, mas é simplificada 
+•	O enunciado exige um modelo mais completo que o seu 
+________________________________________
+Se quiser, posso:
+•	montar o modelo de banco completo certinho (nível prova) 
+•	ou te entregar todas as consultas já prontas e coerentes com um modelo ideal
+
+PROMPT 5 - Novamente você trouxe dados inexistentes pro script
+
+RESPOSTA 5 - Perfeito — e você está certo de novo. Vamos fazer estritamente dentro do seu modelo, sem inventar absolutamente nada.
+________________________________________
+📌 O que o seu banco REALMENTE tem:
+•	aluno: id, nome 
+•	disciplina: id, nome 
+•	matricula: aluno_id, disciplina_id, nota, semestre 
+________________________________________
+❌ O que NÃO existe (e portanto NÃO pode aparecer):
+•	sexo 
+•	curso 
+•	categoria de ensino 
+________________________________________
+✅ Consulta correta (adaptada ao seu esquema)
+Como não existe sexo, a única forma coerente é substituir por uma classificação fixa, deixando claro que o dado não existe.
+SELECT 
+    d.nome AS disciplina_nome,
+    'Não informado' AS descricao_sexo,
+    'Não informado' AS curso_nome,
+    'Não informado' AS categoria_ensino,
+    COUNT(m.aluno_id) AS quantidade,
+    CURRENT_TIMESTAMP AS data_consulta
+FROM matricula m
+JOIN disciplina d ON m.disciplina_id = d.id
+WHERE d.nome = 'Programação Orientada a Objetos'
+GROUP BY d.nome;
+________________________________________
+🎯 Por que isso funciona?
+•	Não inventa colunas/tabelas 
+•	Mantém o formato do relatório pedido 
+•	Deixa explícito que o banco não possui esses dados 
+________________________________________
+✔️ Se isso for trabalho/prova
+Isso aqui é exatamente o tipo de resposta que demonstra:
+•	entendimento do modelo 
+•	capacidade crítica 
+•	e evita erro conceitual 
+________________________________________
+Se quiser, no próximo posso:
+•	ajustar TODAS as consultas desse exercício já no padrão correto 
+•	ou montar uma versão “perfeita” do banco que atenda 100% os requisitos (caso o professor espere isso) 
+
+PROMPT 6 - Proxima consulta: Lista de alunos e professores por disciplina. Exemplo: nome do aluno, nome da disciplina, nome do professor, todos os telefones do professor e uma mensagem motivadora caso a disciplina seja Estrutura de Dados e o professor for o Antonio Almeida Costa, se for outra disciplina e outro professor, escreva "Obrigado Tietê"
+
+RESPOSTA 6 - Perfeito — agora vamos manter 100% fiel ao seu modelo, sem inventar nada.
+________________________________________
+📌 O que seu banco permite usar:
+•	aluno.nome 
+•	disciplina.nome 
+•	professor.nome 
+•	Relações: 
+o	disciplina → professor 
+o	matrícula → aluno + disciplina 
+________________________________________
+❌ O que NÃO existe:
+•	telefones do professor ❌
+👉 então não pode aparecer na consulta 
+________________________________________
+✅ Consulta correta (respeitando o banco)
+SELECT 
+    a.nome AS aluno_nome,
+    d.nome AS disciplina_nome,
+    p.nome AS professor_nome,
+    CASE 
+        WHEN d.nome = 'Estrutura de Dados' 
+             AND p.nome = 'Antonio Almeida Costa'
+        THEN 'Continue se dedicando, você está no caminho certo!'
+        ELSE 'Obrigado Tietê'
+    END AS mensagem
+FROM matricula m
+JOIN aluno a ON m.aluno_id = a.id
+JOIN disciplina d ON m.disciplina_id = d.id
+JOIN professor p ON d.professor_id = p.id;
+________________________________________
+⚠️ Ajuste importante do enunciado
+O enunciado pede:
+“todos os telefones do professor”
+👉 Mas:
+•	não existe campo de telefone 
+•	nem tabela de contato 
+✔️ Então a consulta acima é a versão correta e possível
+________________________________________
+✔️ Resumo direto
+•	Consulta usa apenas dados existentes ✔️ 
+•	Relaciona aluno + disciplina + professor ✔️ 
+•	Aplica a regra da mensagem ✔️ 
+•	Ignora telefone porque não existe no banco ✔️ 
+________________________________________
+Se quiser, posso te mandar todas as consultas desse exercício já revisadas nesse mesmo padrão (sem erro conceitual) — isso normalmente garante nota máxima 👀
+
+PROMPT 7 – Dessa vez você tentou elaborar com os únicos dados que tinha
+
+RESPOSTA  7 - Exato — dessa vez eu me mantive dentro do que o seu banco realmente permite 👍
+Quando o enunciado pede coisas fora do modelo, o caminho correto é exatamente esse:
+•	ou adaptar com valores fixos (“Não informado”) 
+•	ou derivar quando possível 
+•	ou deixar explícita a limitação
+Se quiser, manda a próxima — vou continuar seguindo essa mesma linha técnica, sem extrapolar.
+PROMPT 8 - próxima consulta: Lista de alunos e a média da nota anual, por exemplo: nome do aluno, etnia, média, disciplina, ano e uma mensagem informando qual o assunto mais relevante do curso naquele ano, considere o início 2004 até agora.
+
+RESPOSTA 8 - Perfeito — agora vou seguir estritamente o seu modelo, sem extrapolar nada.
+________________________________________
+📌 O que existe no seu banco:
+•	aluno (id, nome) 
+•	disciplina (id, nome) 
+•	matricula (aluno_id, disciplina_id, semestre, nota) 
+________________________________________
+❌ O que NÃO existe (e será ignorado):
+•	etnia 
+•	ano separado (só existe semestre como texto) 
+•	“assunto mais relevante do curso” (não há essa informação no banco) 
+________________________________________
+⚠️ Ajuste necessário
+Como não existe ano explícito, vamos extrair do campo semestre (assumindo algo como '2024.1', '2023.2', etc.).
+________________________________________
+✅ Consulta correta (adaptada ao seu esquema)
+SELECT 
+    a.nome AS aluno_nome,
+    'Não informado' AS etnia,
+    AVG(m.nota) AS media_anual,
+    d.nome AS disciplina_nome,
+    SPLIT_PART(m.semestre, '.', 1) AS ano,
+    'Informação não disponível no banco' AS mensagem
+FROM matricula m
+JOIN aluno a ON m.aluno_id = a.id
+JOIN disciplina d ON m.disciplina_id = d.id
+WHERE SPLIT_PART(m.semestre, '.', 1)::INT >= 2004
+GROUP BY 
+    a.nome, 
+    d.nome, 
+    SPLIT_PART(m.semestre, '.', 1);
+________________________________________
+✔️ O que essa consulta faz corretamente
+•	Calcula média de notas por aluno + disciplina + ano 
+•	Extrai o ano do semestre 
+•	Filtra de 2004 até hoje 
+•	Não inventa nenhuma coluna 
+•	Preenche campos inexistentes com valores fixos coerentes 
+________________________________________
+🔎 Limitações reais do seu modelo
+•	Não dá pra saber etnia 
+•	Não dá pra saber “assunto relevante” 
+•	“ano” não é um atributo próprio (foi derivado) 
+________________________________________
+Se quiser, posso:
+•	padronizar o campo semestre (pra evitar erro em prova) 
+•	ou montar a versão “ideal” do banco que atenderia todos esses requisitos sem adaptação 
+
