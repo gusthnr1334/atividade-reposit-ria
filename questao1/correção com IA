@@ -1,1 +1,60 @@
+PROMPT 1 - analise o script SQL abaixo e faça o seguinte: Identifique TODOS os erros de modelagem e implementação, incluindo: -Tipos de dados inadequados -Uso incorreto de chaves estrangeiras -Referências erradas -Problemas de normalização -Inconsistências de integridade. gere uma versão corrigida do script SQL, seguindo a estrutura normalizada e lembre de NÃO adicionar novos atributos ou tabelas que não existam no script original, apenas corrija.
+SCRIPT: CREATE TABLE professor ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, data_nascimento varchar(18) ); CREATE TABLE disciplina ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, professor_id INT REFERENCES professor(nome) ); CREATE TABLE aluno ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, nota varchar(10) ); CREATE TABLE matricula ( id SERIAL PRIMARY KEY, aluno_id INT REFERENCES aluno(nome) , disciplina_id INT REFERENCES disciplina(id), semestre VARCHAR(20),
+
+RESPOSTA 1 - Analisando o script original, identifiquei diversos problemas críticos de integridade referencial e tipagem que impediriam o banco de dados de funcionar corretamente ou de manter a qualidade dos dados.
+________________________________________
+Análise de Erros e Inconsistências
+1. Tipos de Dados Inadequados
+•	professor.data_nascimento: Está como VARCHAR(18). Datas devem ser do tipo DATE para permitir cálculos e ordenação correta.
+•	aluno.nota: Definida como VARCHAR(10). Além de ser um tipo inadequado para valores numéricos, este atributo gera redundância, pois a tabela matricula já armazena a nota.
+2. Uso Incorreto de Chaves Estrangeiras (FKs)
+•	disciplina.professor_id: Tenta referenciar professor(nome). Chaves estrangeiras devem obrigatoriamente referenciar a Primary Key (PK) da tabela pai (neste caso, o id), ou um campo com restrição UNIQUE. Referenciar nomes causa falhas se houver professores homônimos.
+•	matricula.aluno_id: Erro idêntico ao anterior, tentando referenciar aluno(nome) em vez de aluno(id).
+3. Problemas de Normalização e Integridade
+•	Redundância: O campo nota na tabela aluno viola a normalização, pois a nota pertence ao contexto do aluno em uma disciplina específica (que já existe em matricula), e não ao cadastro geral do aluno.
+•	Log de Avaliação: A tabela avaliacao_log armazena aluno_nome. Em um modelo relacional, o ideal é referenciar o aluno_id para garantir que, se o aluno mudar de nome, o log permaneça íntegro. No entanto, seguindo sua regra de não criar novos campos, corrigirei apenas a lógica de referência onde possível.
+•	Script SQL Corrigido
+•	Abaixo, apresento o script refatorado. Removi o campo nota da tabela aluno por ser uma duplicata inconsistente do campo presente em matricula.
+-- Criação da tabela Professor
+CREATE TABLE professor (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    data_nascimento DATE -- Corrigido: de VARCHAR para DATE
+);
+
+-- Criação da tabela Disciplina
+CREATE TABLE disciplina (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    professor_id INT REFERENCES professor(id) -- Corrigido: referência agora aponta para o ID
+);
+
+-- Criação da tabela Aluno
+CREATE TABLE aluno (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL
+    -- Removido: 'nota' (duplicidade e tipo incorreto, já existe em matricula)
+);
+
+-- Criação da tabela Matricula
+CREATE TABLE matricula (
+    id SERIAL PRIMARY KEY,
+    aluno_id INT REFERENCES aluno(id), -- Corrigido: referência agora aponta para o ID
+    disciplina_id INT REFERENCES disciplina(id),
+    semestre VARCHAR(20),
+    nota NUMERIC(4,2),
+    UNIQUE (aluno_id, disciplina_id, semestre)
+);
+
+-- Criação da tabela de Log
+CREATE TABLE avaliacao_log (
+    id SERIAL PRIMARY KEY,
+    aluno_nome VARCHAR(100), -- Mantido conforme original, mas preenchido via lógica de aplicação/trigger
+    data_acesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Principais Mudanças Realizadas:
+•	Integridade Referencial: Todas as FOREIGN KEY agora apontam para os campos id (Primary Keys) das tabelas de origem.
+•	Semântica de Dados: Alteração de VARCHAR para DATE em campos de data.
+•	Eliminação de Redundância: A nota agora reside exclusivamente na tabela matricula, que é o local logicamente correto para registrar o desempenho de um aluno em uma disciplina.
 
