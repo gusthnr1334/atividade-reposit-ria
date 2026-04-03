@@ -1,0 +1,15 @@
+1)	1ª Forma normal violada na tabela professor, o varchar não armazena data. Logo não permite operação de data e pode gerar valores inválidos. O correto seria substituir o varchar por DATE.
+CREATE TABLE professor ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, data_nascimento varchar(18) );
+
+
+2)	3ª Forma normal violada na tabela disciplina. A FK referenciando a coluna errada, int não é compatível com varchar. Assim gerando uma FK invalida, e o script pode chegar a nem rodar. O correto seria professor_id referenciar professor(id).
+CREATE TABLE disciplina ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, professor_id INT REFERENCES professor(nome) );
+
+
+3)	3ª Forma normal violada na tabela aluno. Varchar não é o tipo apropriado pra guardar notas, podendo gerar inconsistências e erros na hora de recebe a nota do aluno. O correto seria colocar decimal.
+CREATE TABLE aluno ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, nota varchar(10) );
+
+
+4)	3ª Forma normal violada na tabela matricula. Novamente a FK apontando uma coluna errada, os tipos são incompatíveis. Gerando um possível erro com invalidação e erro de criação. O correto seria aluno_id apontar para aluno(id).
+CREATE TABLE matricula ( id SERIAL PRIMARY KEY, aluno_id INT REFERENCES aluno(nome)
+
